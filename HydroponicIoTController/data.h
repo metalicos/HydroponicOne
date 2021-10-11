@@ -20,8 +20,15 @@ struct DeviceData {
   bool deviceEnable = true;
   bool dosatorsEnable = true;
   bool sensorsEnable = true;
+
+  bool isDosatorPhUpOpen = false;
+  bool isDosatorPhDownOpen = false;
+  bool isDosatorTdsOpen = false;
   
+  bool autoTime = true;
+  char timeZone[35] = {'E', 'u', 'r', 'o', 'p', 'e', '/', 'K', 'i', 'e', 'v'};
+
   uint64_t restartCounter = 0;
-  char wifiSSID[20] = {'C', 'y', 'b', 'e','r', 'D', 'o', 'n','e'}; //CyberDone
+  char wifiSSID[20] = {'C', 'y', 'b', 'e', 'r', 'D', 'o', 'n', 'e'}; //CyberDone
   char wifiPASS[20] = {'a', 'c', 'c', 'e', 's', 's', 'p', 'o', 'i', 'n', 't'}; //accesspoint
 };

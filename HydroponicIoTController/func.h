@@ -17,6 +17,8 @@ uint64_t doseTimeMs(double doseMl) {
 void saveAllDataToMemory() {
   memory.putString("wiSSID", String(cdd.wifiSSID));
   memory.putString("wiPASS", String(cdd.wifiPASS));
+  memory.putString("timeZone", String(cdd.timeZone));
+  memory.putBool("autoTime", cdd.autoTime);
   memory.putDouble("mlPerMil", cdd.mlPerMilisecond);
   memory.putDouble("reErPhUp", cdd.regulateErrorPhUp);
   memory.putDouble("reErPhDo", cdd.regulateErrorPhDown);
@@ -38,6 +40,8 @@ void readAllDataFromMemoryToRAM() {
   cdd.restartCounter = memory.getULong("reCou", 0);
   memory.getString("wiSSID", cdd.wifiSSID, 20);
   memory.getString("wiPASS", cdd.wifiPASS, 20);
+  memory.getString("timeZone", cdd.timeZone, 35);
+  cdd.autoTime = memory.getBool("autoTime", true);
   cdd.mlPerMilisecond = memory.getDouble("mlPerMil", 0.00106666666);
   cdd.regulateErrorPhUp = memory.getDouble("reErPhUp", 0.5);
   cdd.regulateErrorPhDown = memory.getDouble("reErPhDo", 0.5);
@@ -102,6 +106,8 @@ void setupMemory() {
 
 void subscribeEndpoints() {
   mqttClient.subscribe("cyberdone/"UUID"/updateTime");
+  mqttClient.subscribe("cyberdone/"UUID"/timezone");
+  mqttClient.subscribe("cyberdone/"UUID"/autotime");
 
   mqttClient.subscribe("cyberdone/"UUID"/phValue");
   mqttClient.subscribe("cyberdone/"UUID"/temperatureValue");
@@ -152,8 +158,9 @@ void subscribeEndpoints() {
 
 String currentTime() {
   DateTime now = rtc.now();
-  char date[25] = "YYYY-MM-DD hh:mm:ss";
-  return String(now.toString(date));
+  //char date[25] = "[YYYY-MM-DD hh:mm:ss";
+  //return String(now.toString(date));
+  return "[" + String(now.year()) + "," + String(now.month()) + "," + String(now.day()) + "," + String(now.hour()) + "," + String(now.minute()) + "," + String(now.second()) + "]";
 }
 
 String createJSON() {
@@ -174,12 +181,22 @@ String createJSON() {
   str += "\"setupPhValue\":\"" + String(cdd.setupPhValue, 2) + "\",\n" ;
   str += "\"setupTdsValue\":\"" + String(cdd.setupTdsValue) + "\",\n" ;
   str += "\"setupTemperatureValue\":\"" + String(cdd.setupTemperatureValue, 2) + "\",\n" ;
+
+  str += "\"wifiSSID\":\"" + String(cdd.wifiSSID) + "\",\n" ;
+  str += "\"wifiPASS\":\"" + String(cdd.wifiPASS) + "\",\n" ;
+  
+  str += "\"microcontrollerTime\":" + currentTime() + ",\n" ;
+  str += "\"timeZone\":\"" + String(cdd.timeZone) + "\",\n" ;
+  str += "\"autotime\":\"" + String(cdd.autoTime ? "true" : "false") + "\",\n" ;
+
   str += "\"deviceEnable\":\"" + String(cdd.deviceEnable) + "\",\n" ;
   str += "\"dosatorsEnable\":\"" + String(cdd.dosatorsEnable) + "\",\n" ;
   str += "\"sensorsEnable\":\"" + String(cdd.sensorsEnable) + "\",\n" ;
-  str += "\"wifiSSID\":\"" + String(cdd.wifiSSID) + "\",\n" ;
-  str += "\"wifiPASS\":\"" + String(cdd.wifiPASS) + "\",\n" ;
-  str += "\"microcontrollerTime\":\"" + currentTime() + "\",\n" ;
+
+  str += "\"isDosatorPhUpOpen\":\"" + String(cdd.isDosatorPhUpOpen ? "true" : "false") + "\",\n" ;
+  str += "\"isDosatorPhDownOpen\":\"" + String(cdd.isDosatorPhDownOpen ? "true" : "false") + "\",\n" ;
+  str += "\"isDosatorTdsOpen\":\"" + String(cdd.isDosatorTdsOpen ? "true" : "false") + "\",\n" ;
+
   str += "\"restartCounter\":\"" + String((uint32_t)cdd.restartCounter) + "\",\n" ;
   str += "\"UUID\":\""UUID"\"\n" ;
   str += "}";
@@ -228,11 +245,26 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
+
   if (strcmp(topic, "cyberdone/"UUID"/wifiPASS") == 0) {
     sscanf(data, " %s ", cdd.wifiPASS);
     memory.putString("wiPASS", String(cdd.wifiPASS));
     memory.putBool("WiFiChg", true);
     Serial.println("WiFiChg");
+    return;
+  }
+
+  if (strcmp(topic, "cyberdone/"UUID"/timezone") == 0) {
+    sscanf(data, " %s ", cdd.timeZone);
+    memory.putString("timeZone", String(cdd.timeZone));
+    Serial.print("timeZone"); Serial.println(cdd.timeZone);
+    return;
+  }
+
+  if (strcmp(topic, "cyberdone/"UUID"/autotime") == 0) {
+    cdd.autoTime = (bool) uint32_t_Value;
+    memory.putBool("autoTime", cdd.autoTime);
+    Serial.print("autoTime"); Serial.println(cdd.autoTime);
     return;
   }
 
@@ -393,23 +425,29 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (strcmp(topic, "cyberdone/"UUID"/phUpStart") == 0) {
     startDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B, (uint8_t) int32_t_Value);
+    cdd.isDosatorPhUpOpen = (bool) int32_t_Value;
   }
   if (strcmp(topic, "cyberdone/"UUID"/phUpStop") == 0) {
     stopDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B);
+    cdd.isDosatorPhUpOpen = false;
   }
 
   if (strcmp(topic, "cyberdone/"UUID"/phDownStart") == 0) {
     startDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B, (uint8_t) int32_t_Value);
+    cdd.isDosatorPhDownOpen = (bool) int32_t_Value;
   }
   if (strcmp(topic, "cyberdone/"UUID"/phDownStop") == 0) {
     stopDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B);
+    cdd.isDosatorPhDownOpen = false;
   }
 
   if (strcmp(topic, "cyberdone/"UUID"/fertilizerStart") == 0) {
     startDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B, (uint8_t) int32_t_Value);
+    cdd.isDosatorTdsOpen = (bool) int32_t_Value;
   }
   if (strcmp(topic, "cyberdone/"UUID"/fertilizerStop") == 0) {
     stopDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B);
+    cdd.isDosatorTdsOpen = false;
   }
 }
 
@@ -491,7 +529,8 @@ void reconnect() {
 
 String timeJSON() {
   String str = "{\n";
-  str += "\"microcontrollerTime\":\"" + currentTime() + "\",\n" ;
+  str += "\"microcontrollerTime\":" + currentTime() + ",\n" ;
+  str += "\"microcontrollerTimeZone\":\"" + String(cdd.timeZone) + "\",\n" ;
   str += "\"UUID\":\""UUID"\"\n" ;
   str += "}";
   return str;
@@ -510,11 +549,22 @@ void mqttLoop() {
       delay(10);
     }
     mqttClient.publish("hydro-chip", createJSON().c_str());
-    mqttClient.publish("time", timeJSON().c_str());
+    if (cdd.autoTime) {
+      mqttClient.publish("time", timeJSON().c_str());
+    }
   }
   else {
     restartIfConnectionFailedForALongTime();
   }
+}
+
+void stopAllDosators() {
+  stopDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B);
+  stopDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B);
+  stopDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B);
+  cdd.isDosatorPhUpOpen = false;
+  cdd.isDosatorPhDownOpen = false;
+  cdd.isDosatorTdsOpen = false;
 }
 
 void dosatorsLoop() {
@@ -522,18 +572,24 @@ void dosatorsLoop() {
     lastRecheckDosators = millis();
     if (cdd.phValue < (cdd.setupPhValue - (cdd.regulateErrorPhUp / 2))) {
       startDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B, true);
+      cdd.isDosatorPhUpOpen = true;
       delay(doseTimeMs(cdd.phUpDoseMl));
       stopDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B);
+      cdd.isDosatorPhUpOpen = false;
     }
     if (cdd.phValue > (cdd.setupPhValue + (cdd.regulateErrorPhDown / 2))) {
       startDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B, true);
+      cdd.isDosatorPhDownOpen = true;
       delay(doseTimeMs(cdd.phDownDoseMl));
       stopDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B);
+      cdd.isDosatorPhDownOpen = false;
     }
     if (cdd.tdsValue < (cdd.setupTdsValue - (cdd.regulateErrorFertilizer / 2))) {
       startDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B, true);
+      cdd.isDosatorTdsOpen = true;
       delay(doseTimeMs(cdd.fertilizerDoseMl));
       stopDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B);
+      cdd.isDosatorTdsOpen = false;
     }
   }
 }
@@ -541,15 +597,10 @@ void dosatorsLoop() {
 void setupDosators() {
   pinMode(PH_UP_DOSATOR_PORT_A, OUTPUT);
   pinMode(PH_UP_DOSATOR_PORT_B, OUTPUT);
-  stopDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B);
-
   pinMode(PH_DOWN_DOSATOR_PORT_A, OUTPUT);
   pinMode(PH_DOWN_DOSATOR_PORT_B, OUTPUT);
-  stopDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B);
-
   pinMode(FERTILIZER_DOSATOR_PORT_A, OUTPUT);
   pinMode(FERTILIZER_DOSATOR_PORT_B, OUTPUT);
-  stopDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B);
 }
 
 void setupSensors() {

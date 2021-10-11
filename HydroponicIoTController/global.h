@@ -25,9 +25,8 @@
 #define FERTILIZER_DOSATOR_PORT_A 5
 #define FERTILIZER_DOSATOR_PORT_B 17
 #define SUCCESSFULLY_CONNECTED 6
-uint64_t lastSendToServer = 0;
+
 uint64_t lastRecheckDosators = 0;
-bool disableStayInAfterChangedWifiSettings = false;
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);

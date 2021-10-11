@@ -13,6 +13,8 @@ void secondCoreLoop(void *parameter) {
     }
     if (cdd.dosatorsEnable) {
       dosatorsLoop();
+    } else{
+      stopAllDosators();
     }
   }
 }
