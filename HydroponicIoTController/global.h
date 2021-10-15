@@ -7,30 +7,17 @@
 #include "CyberDonePhSensor.h"
 #include "CyberDoneTdsSensor.h"
 
-//#define MQTT_SERVER "b85b0aa3fd23.sn.mynetname.net"
-#define MQTT_SERVER "192.168.1.100"
-#define MQTT_SERVER_PORT 1883
-#define MQTT_USER "user"
-#define MQTT_PASSWORD "Qwerty123"
-
-#define ADC_MAX 4095
-#define ADC_REFERENCE_VOLTAGE 3.3
-#define PH_SENSOR_PORT 34
-#define TDS_SENSOR_PORT 35
-#define TEMPERATURE_SENSOR_PORT 32
-#define PH_UP_DOSATOR_PORT_A 23
-#define PH_UP_DOSATOR_PORT_B 22
-#define PH_DOWN_DOSATOR_PORT_A 19
-#define PH_DOWN_DOSATOR_PORT_B 18
-#define FERTILIZER_DOSATOR_PORT_A 5
-#define FERTILIZER_DOSATOR_PORT_B 17
-#define SUCCESSFULLY_CONNECTED 6
-
 uint64_t lastRecheckDosators = 0;
+
+
+PhSensorData phData = PhSensorData();
+TdsSensorData tdsData = TdsSensorData();
+DeviceData dd = DeviceData();
+SystemData sd = SystemData();
+DeviceSettings ds = DeviceSettings();
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
-DeviceData cdd;
 RTC_Millis rtc;
 Preferences memory;
 TaskHandle_t core1, core2;
