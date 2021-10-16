@@ -11,10 +11,10 @@ void secondCoreLoop(void *parameter) {
     if (sd.sensorsEnable) {
       sensorsLoop();
     }
-    if (sd.dosatorsEnable) {
-      dosatorsLoop();
+    if (sd.dispensersEnable) {
+      dispensersLoop();
     } else{
-      stopAllDosators();
+      stopAllDispensers();
     }
   }
 }
@@ -24,7 +24,7 @@ void setup() {
   setupMemory();
   setupTime();
   setupSensors();
-  setupDosators();
+  setupDispensers();
   setupWifi();
   mqttClient.setServer(MQTT_SERVER, MQTT_SERVER_PORT);
   mqttClient.setCallback(callback);

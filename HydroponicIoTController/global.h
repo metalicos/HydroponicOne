@@ -1,13 +1,16 @@
 #include <PubSubClient.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include "RTClib.h"
 #include "data.h"
 #include <Preferences.h>
 #include "DS18B20.h"
 #include "CyberDonePhSensor.h"
 #include "CyberDoneTdsSensor.h"
+#include "Cipher.h"
+#include <base64.h>
 
-uint64_t lastRecheckDosators = 0;
+uint64_t lastRecheckDispensers = 0;
 
 
 PhSensorData phData = PhSensorData();
@@ -16,7 +19,7 @@ DeviceData dd = DeviceData();
 SystemData sd = SystemData();
 DeviceSettings ds = DeviceSettings();
 
-WiFiClient espClient;
+WiFiClient espClient; //WiFiClientSecure espClient;
 PubSubClient mqttClient(espClient);
 RTC_Millis rtc;
 Preferences memory;

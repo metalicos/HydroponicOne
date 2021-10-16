@@ -11,7 +11,7 @@ void stopDosing(int pinA, int pinB) {
 }
 
 uint64_t doseTimeMs(double doseMl) {
-  return lround(doseMl / ds.mlPerMilisecond);
+  return lround(doseMl / ds.mlPerMillisecond);
 }
 
 void saveDeviceDataToMemory() {
@@ -113,17 +113,17 @@ void subscribeEndpoints() {
   mqttClient.subscribe("cyberdone/"UUID"/phDownPump");
   mqttClient.subscribe("cyberdone/"UUID"/tdsPump");
 
-  mqttClient.subscribe("cyberdone/"UUID"/mlPerMilisecond");
+  mqttClient.subscribe("cyberdone/"UUID"/mlPerMillisecond");
   mqttClient.subscribe("cyberdone/"UUID"/regulateErrorPh");
-  mqttClient.subscribe("cyberdone/"UUID"/regulateErrorFertilizer");
+  mqttClient.subscribe("cyberdone/"UUID"/regulateErrorTds");
   mqttClient.subscribe("cyberdone/"UUID"/phUpDoseMl");
   mqttClient.subscribe("cyberdone/"UUID"/phDownDoseMl");
-  mqttClient.subscribe("cyberdone/"UUID"/fertilizerDoseMl");
-  mqttClient.subscribe("cyberdone/"UUID"/recheckDosatorsAfterMs");
+  mqttClient.subscribe("cyberdone/"UUID"/tdsDoseMl");
+  mqttClient.subscribe("cyberdone/"UUID"/recheckDispensersAfterMs");
   mqttClient.subscribe("cyberdone/"UUID"/setupPhValue");
   mqttClient.subscribe("cyberdone/"UUID"/setupTdsValue");
 
-  mqttClient.subscribe("cyberdone/"UUID"/dosatorsEnable");
+  mqttClient.subscribe("cyberdone/"UUID"/dispensersEnable");
   mqttClient.subscribe("cyberdone/"UUID"/sensorsEnable");
   mqttClient.subscribe("cyberdone/"UUID"/restartCounter");
 
@@ -152,7 +152,6 @@ void subscribeEndpoints() {
 
   mqttClient.subscribe("cyberdone/"UUID"/wifiSSID");
   mqttClient.subscribe("cyberdone/"UUID"/wifiPASS");
-  mqttClient.subscribe("cyberdone/"UUID"/updateToken");
 }
 
 String currentTime() {
@@ -161,31 +160,42 @@ String currentTime() {
 }
 
 String createJSON() {
+  uint8_t *tmp = WiFi.BSSID();
+  String bssid = String(tmp[5]) + ":" + String(tmp[4]) + ":" + String(tmp[3]) + ":" + String(tmp[2]) + ":" + String(tmp[1]) + ":" + String(tmp[0]);
+  WiFi.macAddress(tmp);
+  String macAddr = String(tmp[5]) + ":" + String(tmp[4]) + ":" + String(tmp[3]) + ":" + String(tmp[2]) + ":" + String(tmp[1]) + ":" + String(tmp[0]);
+
   String str = "{\n";
   str += "\"phValue\":\"" + String(dd.phValue, 2) + "\",\n";
   str += "\"temperatureValue\":\"" + String(dd.temperatureValue, 2) + "\",\n" ;
   str += "\"tdsValue\":\"" + String(dd.tdsValue) + "\",\n" ;
-  str += "\"isDosatorPhUpOpen\":\"" + String(dd.isDosatorPhUpOpen ? "true" : "false") + "\",\n" ;
-  str += "\"isDosatorPhDownOpen\":\"" + String(dd.isDosatorPhDownOpen ? "true" : "false") + "\",\n" ;
-  str += "\"isDosatorTdsOpen\":\"" + String(dd.isDosatorTdsOpen ? "true" : "false") + "\",\n" ;
+  str += "\"isDispenserPhUpOpen\":\"" + String(dd.isDispenserPhUpOpen ? "true" : "false") + "\",\n" ;
+  str += "\"isDispenserPhDownOpen\":\"" + String(dd.isDispenserPhDownOpen ? "true" : "false") + "\",\n" ;
+  str += "\"isDispenserTdsOpen\":\"" + String(dd.isDispenserTdsOpen ? "true" : "false") + "\",\n" ;
 
   str += "\"setupPhValue\":\"" + String(ds.setupPhValue, 2) + "\",\n" ;
   str += "\"setupTdsValue\":\"" + String(ds.setupTdsValue) + "\",\n" ;
   str += "\"regulateErrorPh\":\"" + String(ds.regulateErrorPh, 2) + "\",\n" ;
   str += "\"regulateErrorFertilizer\":\"" + String(ds.regulateErrorFertilizer, 2) + "\",\n" ;
-  str += "\"mlPerMilisecond\":\"" + String(ds.mlPerMilisecond, 11) + "\",\n" ;
+  str += "\"mlPerMillisecond\":\"" + String(ds.mlPerMillisecond, 11) + "\",\n" ;
   str += "\"phUpDoseMl\":\"" + String(ds.phUpDoseMl, 1) + "\",\n" ;
   str += "\"phDownDoseMl\":\"" + String(ds.phDownDoseMl, 1) + "\",\n" ;
   str += "\"fertilizerDoseMl\":\"" + String(ds.fertilizerDoseMl, 1) + "\",\n" ;
-  str += "\"recheckDosatorsAfterMs\":\"" + String((uint32_t)ds.recheckDosatorsAfterMs) + "\",\n" ;
+  str += "\"recheckDispensersAfterMs\":\"" + String((uint32_t)ds.recheckDispensersAfterMs) + "\",\n" ;
   str += "\"restartCounter\":\"" + String((uint32_t)ds.restartCounter) + "\",\n" ;
 
-  str += "\"dosatorsEnable\":\"" + String(sd.dosatorsEnable) + "\",\n" ;
-  str += "\"sensorsEnable\":\"" + String(sd.sensorsEnable) + "\",\n" ;
+  str += "\"dispensersEnable\":\"" + String(sd.dispensersEnable ? "true" : "false") + "\",\n" ;
+  str += "\"sensorsEnable\":\"" + String(sd.sensorsEnable ? "true" : "false") + "\",\n" ;
   str += "\"autotime\":\"" + String(sd.autoTime ? "true" : "false") + "\",\n" ;
   str += "\"timeZone\":\"" + String(sd.timeZone) + "\",\n" ;
-  str += "\"wifiSSID\":\"" + String(sd.wifiSSID) + "\",\n" ;
-  str += "\"wifiPASS\":\"" + String(sd.wifiPASS) + "\",\n" ;
+  str += "\"wifiSsid\":\"" + String(sd.wifiSSID) + "\",\n" ;
+  str += "\"wifiPass\":\"" + String(sd.wifiPASS) + "\",\n" ;
+  str += "\"wifiRssi\":\"" + String(WiFi.RSSI()) + "\",\n" ;
+  str += "\"wifiBsid\":\"" + bssid + "\",\n" ;
+  str += "\"localIp\":\"" +  WiFi.localIP().toString() + "\",\n" ;
+  str += "\"subnetMask\":\"" +  WiFi.subnetMask().toString() + "\",\n" ;
+  str += "\"gatewayIP\":\"" +  WiFi.gatewayIP().toString() + "\",\n" ;
+  str += "\"macAddr\":\"" + macAddr + "\",\n" ;
 
   str += "\"tdsCalibrationCoefficientValue\":\"" + String(tdsData.kValue) + "\",\n" ;
   str += "\"tdsOversampling\":\"" + String(tdsData.oversampling) + "\",\n" ;
@@ -201,7 +211,7 @@ String createJSON() {
 
   str += "\"microcontrollerTime\":" + currentTime() + ",\n" ;
   str += "\"uuid\":\""UUID"\"\n" ;
-  str += "}";
+  str += "}%%%";
   return str;
 }
 
@@ -210,16 +220,7 @@ String timeJSON() {
   str += "\"microcontrollerTime\":" + currentTime() + ",\n" ;
   str += "\"microcontrollerTimeZone\":\"" + String(sd.timeZone) + "\",\n" ;
   str += "\"uuid\":\""UUID"\"\n" ;
-  str += "}";
-  return str;
-}
-
-
-String authJSON() {
-  String str = "{\n";
-  str += "\"uuid\":\""UUID"\",\n" ;
-  str += "\"currentToken\":\"" + String(sd.token) + "\"\n" ;
-  str += "}";
+  str += "}%%%";
   return str;
 }
 
@@ -271,12 +272,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  if (strcmp(topic, "cyberdone/"UUID"/updateToken") == 0) {
-    sscanf(data, " %s ", sd.token);
-    saveSystemDataToMemory();
-    return;
-  }
-
   if (strcmp(topic, "cyberdone/"UUID"/timezone") == 0) {
     sscanf(data, " %s ", sd.timeZone);
     saveSystemDataToMemory();
@@ -289,8 +284,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  if (strcmp(topic, "cyberdone/"UUID"/dosatorsEnable") == 0) {
-    sd.dosatorsEnable = (bool) int32_t_Value;
+  if (strcmp(topic, "cyberdone/"UUID"/dispensersEnable") == 0) {
+    sd.dispensersEnable = (bool) int32_t_Value;
     saveSystemDataToMemory();
     return;
   }
@@ -307,8 +302,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  if (strcmp(topic, "cyberdone/"UUID"/mlPerMilisecond") == 0) {
-    ds.mlPerMilisecond = doubleValue;
+  if (strcmp(topic, "cyberdone/"UUID"/mlPerMillisecond") == 0) {
+    ds.mlPerMillisecond = doubleValue;
     saveSettingsToMemory();
     return;
   }
@@ -319,7 +314,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  if (strcmp(topic, "cyberdone/"UUID"/regulateErrorFertilizer") == 0) {
+  if (strcmp(topic, "cyberdone/"UUID"/regulateErrorTds") == 0) {
     ds.regulateErrorFertilizer = doubleValue;
     saveSettingsToMemory();
     return;
@@ -337,14 +332,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  if (strcmp(topic, "cyberdone/"UUID"/fertilizerDoseMl") == 0) {
+  if (strcmp(topic, "cyberdone/"UUID"/tdsDoseMl") == 0) {
     ds.fertilizerDoseMl = doubleValue;
     saveSettingsToMemory();
     return;
   }
 
-  if (strcmp(topic, "cyberdone/"UUID"/recheckDosatorsAfterMs") == 0) {
-    ds.recheckDosatorsAfterMs = uint64_t_Value;
+  if (strcmp(topic, "cyberdone/"UUID"/recheckDispensersAfterMs") == 0) {
+    ds.recheckDispensersAfterMs = uint64_t_Value;
     saveSettingsToMemory();
     return;
   }
@@ -462,45 +457,45 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if (strcmp(topic, "cyberdone/"UUID"/phUpPump") == 0) {
     if (int32_t_Value == 0) {
       startDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B, false);
-      dd.isDosatorPhUpOpen = true;
+      dd.isDispenserPhUpOpen = true;
     }
     if (int32_t_Value == 1) {
       startDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B, true);
-      dd.isDosatorPhUpOpen = true;
+      dd.isDispenserPhUpOpen = true;
     }
     if (int32_t_Value == 2) {
       stopDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B);
-      dd.isDosatorPhUpOpen = false;
+      dd.isDispenserPhUpOpen = false;
     }
   }
 
   if (strcmp(topic, "cyberdone/"UUID"/phDownPump") == 0) {
     if (int32_t_Value == 0) {
       startDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B, false);
-      dd.isDosatorPhDownOpen = true;
+      dd.isDispenserPhDownOpen = true;
     }
     if (int32_t_Value == 1) {
       startDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B, true);
-      dd.isDosatorPhDownOpen = true;
+      dd.isDispenserPhDownOpen = true;
     }
     if (int32_t_Value == 2) {
       stopDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B);
-      dd.isDosatorPhDownOpen = false;
+      dd.isDispenserPhDownOpen = false;
     }
   }
 
   if (strcmp(topic, "cyberdone/"UUID"/tdsPump") == 0) {
     if (int32_t_Value == 0) {
       startDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B, false);
-      dd.isDosatorTdsOpen = true;
+      dd.isDispenserTdsOpen = true;
     }
     if (int32_t_Value == 1) {
       startDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B, true);
-      dd.isDosatorTdsOpen = true;
+      dd.isDispenserTdsOpen = true;
     }
     if (int32_t_Value == 2) {
       stopDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B);
-      dd.isDosatorTdsOpen = false;
+      dd.isDispenserTdsOpen = false;
     }
   }
 }
@@ -570,6 +565,7 @@ void setupWifi() {
   delay(10);
   wifiClear();
   WiFi.setAutoReconnect(true);
+  
   WiFi.begin(sd.wifiSSID, sd.wifiPASS);
   randomSeed(micros());
   actIfConnectionFailedForALongTime();
@@ -579,6 +575,17 @@ void reconnect() {
   if (!mqttClient.connected()) {
     if (mqttClient.connect(UUID, MQTT_USER, MQTT_PASSWORD)) subscribeEndpoints();
   }
+}
+
+String encode(String text) {
+  Cipher * cipher = new Cipher();
+  char key[16] = { -1, -2, -3, 100, 100, -88, 100, -95, 100, -69, 95, 48, 77, -78, 100, 62};
+  cipher->setKey(key);
+  return base64::encode(cipher->encryptString(text));
+}
+
+String decode(String text) {
+  //base64::encode(toEncode);
 }
 
 void mqttLoop() {
@@ -593,10 +600,10 @@ void mqttLoop() {
       mqttClient.loop();
       delay(10);
     }
-    mqttClient.publish("device-microservice/auth", authJSON().c_str());
-    mqttClient.publish("device-microservice/hydroponic-v1/settings", createJSON().c_str());
+
+    mqttClient.publish("hydroponic-v1", (encode(createJSON())).c_str());
     if (sd.autoTime) {
-      mqttClient.publish("device-microservice/autotime", timeJSON().c_str());
+      mqttClient.publish("device-microservice/autotime", (encode(timeJSON())).c_str());
     }
   }
   else {
@@ -604,43 +611,43 @@ void mqttLoop() {
   }
 }
 
-void stopAllDosators() {
+void stopAllDispensers() {
   stopDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B);
   stopDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B);
   stopDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B);
-  dd.isDosatorPhUpOpen = false;
-  dd.isDosatorPhDownOpen = false;
-  dd.isDosatorTdsOpen = false;
+  dd.isDispenserPhUpOpen = false;
+  dd.isDispenserPhDownOpen = false;
+  dd.isDispenserTdsOpen = false;
 }
 
-void dosatorsLoop() {
-  if (millis() - lastRecheckDosators >= ds.recheckDosatorsAfterMs) {
-    lastRecheckDosators = millis();
+void dispensersLoop() {
+  if (millis() - lastRecheckDispensers >= ds.recheckDispensersAfterMs) {
+    lastRecheckDispensers = millis();
     if (dd.phValue < (ds.setupPhValue - (ds.regulateErrorPh / 2))) {
       startDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B, true);
-      dd.isDosatorPhUpOpen = true;
+      dd.isDispenserPhUpOpen = true;
       delay(doseTimeMs(ds.phUpDoseMl));
       stopDosing(PH_UP_DOSATOR_PORT_A, PH_UP_DOSATOR_PORT_B);
-      dd.isDosatorPhUpOpen = false;
+      dd.isDispenserPhUpOpen = false;
     }
     if (dd.phValue > (ds.setupPhValue + (ds.regulateErrorPh / 2))) {
       startDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B, true);
-      dd.isDosatorPhDownOpen = true;
+      dd.isDispenserPhDownOpen = true;
       delay(doseTimeMs(ds.phDownDoseMl));
       stopDosing(PH_DOWN_DOSATOR_PORT_A, PH_DOWN_DOSATOR_PORT_B);
-      dd.isDosatorPhDownOpen = false;
+      dd.isDispenserPhDownOpen = false;
     }
     if (dd.tdsValue < (ds.setupTdsValue - (ds.regulateErrorFertilizer / 2))) {
       startDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B, true);
-      dd.isDosatorTdsOpen = true;
+      dd.isDispenserTdsOpen = true;
       delay(doseTimeMs(ds.fertilizerDoseMl));
       stopDosing(FERTILIZER_DOSATOR_PORT_A, FERTILIZER_DOSATOR_PORT_B);
-      dd.isDosatorTdsOpen = false;
+      dd.isDispenserTdsOpen = false;
     }
   }
 }
 
-void setupDosators() {
+void setupDispensers() {
   pinMode(PH_UP_DOSATOR_PORT_A, OUTPUT);
   pinMode(PH_UP_DOSATOR_PORT_B, OUTPUT);
   pinMode(PH_DOWN_DOSATOR_PORT_A, OUTPUT);
