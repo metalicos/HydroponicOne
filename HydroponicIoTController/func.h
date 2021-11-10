@@ -600,8 +600,8 @@ void mqttLoop() {
       mqttClient.loop();
       delay(10);
     }
-
-    mqttClient.publish("hydroponic-v1", (encode(createJSON())).c_str());
+    Serial.println("Data sent");
+    mqttClient.publish("device-microservice/hydroponic-v1", (encode(createJSON())).c_str());
     if (sd.autoTime) {
       mqttClient.publish("device-microservice/autotime", (encode(timeJSON())).c_str());
     }

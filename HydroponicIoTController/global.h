@@ -12,14 +12,13 @@
 
 uint64_t lastRecheckDispensers = 0;
 
-
 PhSensorData phData = PhSensorData();
 TdsSensorData tdsData = TdsSensorData();
 DeviceData dd = DeviceData();
 SystemData sd = SystemData();
 DeviceSettings ds = DeviceSettings();
 
-WiFiClient espClient; //WiFiClientSecure espClient;
+WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 RTC_Millis rtc;
 Preferences memory;
